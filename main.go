@@ -9,13 +9,18 @@ import (
 	"time"
 )
 
+// Possible letters for the random ID
 var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+// Right now the BinStore encapsulates a randome number generator, for...reasons
+// Not sure if this is a good idea or not, but it's how it's working for now
 type BinStore struct {
 	Bins    map[string][]string
 	randGen *rand.Rand
 }
 
+// NewBinStore creates a new BinStore and returns a reference to it
+// It also seeds the random number generator
 func NewBinStore() *BinStore {
 	source := rand.NewSource(time.Now().UnixNano())
 	gen := rand.New(source)
@@ -23,7 +28,9 @@ func NewBinStore() *BinStore {
 	return &BinStore{make(map[string][]string), gen}
 }
 
+// NewBin creates a new empty bin in the store
 func (store *BinStore) NewBin() string {
+	// Generate random id: could be factored out
 	b := make([]rune, 8)
 	for i := range b {
 		b[i] = letters[store.randGen.Intn(len(letters))]
@@ -35,11 +42,15 @@ func (store *BinStore) NewBin() string {
 	return result
 }
 
+// GetBin gets the bin with the id of binName. It returns an array of
+// strings (the requests) and a bool indicating whether the bin exists
 func (store BinStore) GetBin(binName string) ([]string, bool) {
 	bin, exists := store.Bins[binName]
 	return bin, exists
 }
 
+// AddRekwest adds a request to the given bin. It returns false if the bin
+// does not exist
 func (store *BinStore) AddRekwest(binName string, rekwest string) bool {
 	_, exists := store.Bins[binName]
 	if !exists {
@@ -69,6 +80,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func binHandler(w http.ResponseWriter, r *http.Request) {
+	// The POST route creates a new bin and redirects to the inspect page
 	if r.Method == "POST" {
 		binName := binStore.NewBin()
 
@@ -76,9 +88,12 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// This grabs the part after /r/ in the path
 	hash := r.URL.Path[len("/r/"):]
+	// Put the full link together here to be displayed on a landing page
 	binAddress := fmt.Sprintf("http://%s/r/%s", r.Host, hash)
 
+	// If there is a query "inspect", show all the requests
 	if r.URL.RawQuery == "inspect" {
 		rekwests, exists := loadRequest(hash)
 
@@ -97,6 +112,7 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 		for i, rekwest := range rekwests {
 			fmt.Fprintf(w, "<h2>Rekwest %d</h2><p>%s</p>", i+1, rekwest)
 		}
+		// Otherwise, save the request (if the bin exists)
 	} else {
 		dump, err := httputil.DumpRequest(r, true)
 
@@ -119,6 +135,7 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Helpers - these could be extracted out along with the BinStore
 func saveRequest(hash string, rekwest []byte) bool {
 	success := binStore.AddRekwest(hash, string(rekwest))
 	return success

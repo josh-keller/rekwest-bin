@@ -1,11 +1,19 @@
 # Request Bin Clone
 
-## Milestones
+## Todos
 
-1. Save requests that come to a specific, hardcoded end point and display them at another url
-2. Save last N request only
-3. Routes:
-   - Make a bin
-   - Make requests to a bin/reject ones that don't exist
-   - View bin
-4. Optimize the storage
+0. Testing
+   - Tests for the backend
+1. Integrate Mongo with what's working already
+   - API: Abtract out the data storage part first into its own package
+   - Then swap mongo in for that
+2. MongoDB
+   - One collection for all bins
+   - Each bin is a document
+   - Each document has an array of requests
+   - Figure out how to add and slice at the same time
+3. Frontend
+   - Look at templating in Go
+   - Create template for the various pages
+4. Deployment
+5. Automatic deletion (cron job)

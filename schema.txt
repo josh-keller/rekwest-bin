@@ -1,0 +1,19 @@
+Document:
+
+  bin {
+    binId: id
+    created_at: timestamp
+
+    requests: [
+    {
+      method:
+      host:
+      ...etc
+    },
+    {
+      ...
+    }
+
+    ]
+  }
+
