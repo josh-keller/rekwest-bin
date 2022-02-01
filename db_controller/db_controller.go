@@ -1,13 +1,14 @@
-package dbcontroller
+package db_controller
 
 import (
   "context"
   "fmt"
   "log"
-  "github.com/joho/godotenv/autoload"
+  "os"
+  "github.com/joho/godotenv"
 	// "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	// "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func ConnectMongo() {

@@ -7,11 +7,11 @@ import (
 	// "net/http"
 	// "net/http/httputil"
 	// "time"
-  "rekwestbin/dbcontroller"
+  "rekwest-bin/db_controller"
 )
 
 func main () {
-  ConnectMongo()
+  db_controller.ConnectMongo()
 }
 
 // // Possible letters for the random ID
