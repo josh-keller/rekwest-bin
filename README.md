@@ -9,7 +9,7 @@
 - Bins are automatically deleted after 48 hours
 - Each bin has a limit of 20 requests (FIFO)
 
-## ERD (Actually just Mongo)
+## ERD
 
 - Database in MongoDB
   - 1 collection
