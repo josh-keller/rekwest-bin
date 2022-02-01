@@ -7,7 +7,7 @@ import (
 	// "net/http"
 	// "net/http/httputil"
 	// "time"
-  "rekwest-bin/db_controller"
+  "github.com/wboard82/rekwest-bin/db_controller"
 )
 
 func main () {

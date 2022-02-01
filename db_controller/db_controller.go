@@ -37,8 +37,15 @@ func ConnectMongo() {
   fmt.Println("Connected to MongoDB!")
 }
 
-
-// uri := os.Getenv("MONGODB_URI")
+// func DisconnectMongo() {
+//   err = client.Disconnect(context.TODO())
+//
+//   if err != nil {
+//     log.Fatal(err)
+//   }
+//
+//   fmt.Println("Connection to MongoDB closed.")
+// }
 
 func AddBin() {
 
