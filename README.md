@@ -57,8 +57,3 @@ bin: {
    - Create template for the various pages
 4. Deployment
 5. Automatic deletion (cron job)
-
-```
-
-
-```
