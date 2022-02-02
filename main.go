@@ -31,8 +31,7 @@ func fixIPAddress(r *http.Request) {
 		r.Header.Get("X-Originating-IP"),
 	}
 
-	for source, ip := range ipSources {
-		fmt.Println(source, ": ", ip)
+	for _, ip := range ipSources {
 		if ip != "" {
 			ipAddress = ip
 			break
