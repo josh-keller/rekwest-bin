@@ -4,80 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/http/httputil"
-	"time"
 )
 
 var templates = template.Must(template.ParseFiles("templates/inspect.html"))
-
-// Possible letters for the random ID
-var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-// Right now the BinStore encapsulates a randome number generator, for...reasons
-// Not sure if this is a good idea or not, but it's how it's working for now
-type BinStore struct {
-	Bins    map[string][]string
-	randGen *rand.Rand
-}
-
-type RequestInfo struct {
-	Raw string
-}
-
-type BinInfo struct {
-	BinAddress string
-	Requests   []RequestInfo
-}
-
-// NewBinStore creates a new BinStore and returns a reference to it
-// It also seeds the random number generator
-func NewBinStore() *BinStore {
-	source := rand.NewSource(time.Now().UnixNano())
-	gen := rand.New(source)
-
-	return &BinStore{make(map[string][]string), gen}
-}
-
-// NewBin creates a new empty bin in the store
-func (store *BinStore) NewBin() string {
-	// Generate random id: could be factored out
-	b := make([]rune, 8)
-	for i := range b {
-		b[i] = letters[store.randGen.Intn(len(letters))]
-	}
-
-	result := string(b)
-	store.Bins[result] = []string{}
-
-	return result
-}
-
-// GetBin gets the bin with the id of binName. It returns an array of
-// strings (the requests) and a bool indicating whether the bin exists
-func (store BinStore) GetBin(binName string) ([]string, bool) {
-	bin, exists := store.Bins[binName]
-	return bin, exists
-}
-
-// AddRekwest adds a request to the given bin. It returns false if the bin
-// does not exist
-func (store *BinStore) AddRekwest(binName string, rekwest string) bool {
-	_, exists := store.Bins[binName]
-	if !exists {
-		return false
-	}
-
-	binSize := len(store.Bins[binName])
-
-	if binSize >= 20 {
-		store.Bins[binName] = store.Bins[binName][binSize+1-20:]
-	}
-
-	store.Bins[binName] = append(store.Bins[binName], rekwest)
-	return true
-}
 
 var binStore = NewBinStore()
 
@@ -89,6 +20,28 @@ func main() {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>")
+}
+
+func fixIPAddress(r *http.Request) {
+	var ipAddress string
+	var ipSources = []string{
+		r.Header.Get("True-Client-IP"),
+		r.Header.Get("True-Real-IP"),
+		r.Header.Get("X-Forwarded-For"),
+		r.Header.Get("X-Originating-IP"),
+	}
+
+	for source, ip := range ipSources {
+		fmt.Println(source, ": ", ip)
+		if ip != "" {
+			ipAddress = ip
+			break
+		}
+	}
+
+	if ipAddress != "" {
+		r.RemoteAddr = ipAddress
+	}
 }
 
 func binHandler(w http.ResponseWriter, r *http.Request) {
@@ -135,11 +88,10 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		requesterIP1 := r.RemoteAddr
-		requesterIP := r.Header.Get("X-Forwarded-For")
+		fixIPAddress(r)
 
 		if saveRequest(binID, dump) {
-			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s, %s</p>", requesterIP1, requesterIP)
+			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s</p>", r.RemoteAddr)
 			fmt.Fprintf(w, "<p><a href=%s>View requests</a>", binAddress+"?inspect")
 		} else {
 			http.NotFound(w, r)
@@ -152,15 +104,4 @@ func renderTemplate(writer http.ResponseWriter, tmpl string, bin *BinInfo) {
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-// Helpers - these could be extracted out along with the BinStore
-func saveRequest(hash string, rekwest []byte) bool {
-	success := binStore.AddRekwest(hash, string(rekwest))
-	return success
-}
-
-func loadRequest(hash string) ([]string, bool) {
-	bins, exists := binStore.GetBin(hash)
-	return bins, exists
 }
