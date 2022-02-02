@@ -3,20 +3,59 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"net/http/httputil"
+	"time"
+
+	"github.com/wboard82/rekwest-bin/db_controller"
 )
 
 var templates = template.Must(template.ParseFiles("templates/inspect.html"))
 
 var binStore = NewBinStore()
 
-func main() {
-	http.HandleFunc("/r/", binHandler)
-	http.HandleFunc("/", rootHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+var testBin = db_controller.Bin{
+	BinId:      "",
+	Created_at: time.Now().GoString(), // timestamp
+	Rekwests:   make([]db_controller.Rekwest, 20),
 }
+
+var testRekwest = db_controller.Rekwest{
+	RekwestId:  "",
+	Method:     "POST",
+	Host:       "316e-174-81-238-56.ngrok.io",
+	Path:       "/r/",
+	Created:    time.Now().GoString(), // timestamp
+	Parameters: nil,
+	Headers: map[string]string{
+		"User-Agent":        "curl/7.68.0",
+		"Content-Length":    "28",
+		"Accept":            "*/*",
+		"Accept-Encoding":   "gzip",
+		"Content-Type":      "application/json",
+		"X-Forwarded-For":   "192.222.245.48",
+		"X-Forwarded-Proto": "https",
+	},
+	Body: `{"dragons": "are dangerous"}`,
+	Raw:  "hi im a raw rekwest",
+}
+
+func main() {
+	db_controller.Connect()
+	defer db_controller.Disconnect()
+	bin, binId := db_controller.NewBin()
+	fmt.Println(bin, binId, bin.BinId)
+	bin, success := db_controller.FindBin(binId)
+	fmt.Println(bin, success)
+	db_controller.GetAllBins()
+	db_controller.AddRekwest(binId, testRekwest)
+}
+
+// func main() {
+// 	http.HandleFunc("/r/", binHandler)
+// 	http.HandleFunc("/", rootHandler)
+// 	log.Fatal(http.ListenAndServe(":8080", nil))
+// }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>")
