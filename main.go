@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"time"
 )
+
+var templates = template.Must(template.ParseFiles("templates/inspect.html"))
 
 // Possible letters for the random ID
 var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -17,6 +20,15 @@ var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUV
 type BinStore struct {
 	Bins    map[string][]string
 	randGen *rand.Rand
+}
+
+type RequestInfo struct {
+	Raw string
+}
+
+type BinInfo struct {
+	BinAddress string
+	Requests   []RequestInfo
 }
 
 // NewBinStore creates a new BinStore and returns a reference to it
@@ -89,30 +101,32 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// This grabs the part after /r/ in the path
-	hash := r.URL.Path[len("/r/"):]
+	binID := r.URL.Path[len("/r/"):]
 	// Put the full link together here to be displayed on a landing page
-	binAddress := fmt.Sprintf("http://%s/r/%s", r.Host, hash)
+	binAddress := fmt.Sprintf("http://%s/r/%s", r.Host, binID)
 
 	// If there is a query "inspect", show all the requests
 	if r.URL.RawQuery == "inspect" {
-		rekwests, exists := loadRequest(hash)
+		rekwests, exists := loadRequest(binID)
 
 		if !exists {
 			http.NotFound(w, r)
 			return
 		}
 
-		fmt.Fprintf(w, "<h1>Here are your rekwests:</h1>")
-		if len(rekwests) == 0 {
-			fmt.Fprintf(w, "<h2>No rekwests</h2>")
-			fmt.Fprintf(w, "<p>Make a request to: %s", binAddress)
-			fmt.Fprintf(w, "<p>View request at: %s", binAddress+"?inspect")
+		requestInfo := make([]RequestInfo, len(rekwests))
+
+		for i, req := range rekwests {
+			requestInfo[i] = RequestInfo{req}
 		}
 
-		for i, rekwest := range rekwests {
-			fmt.Fprintf(w, "<h2>Rekwest %d</h2><p>%s</p>", i+1, rekwest)
+		bin := BinInfo{
+			BinAddress: binAddress,
+			Requests:   requestInfo,
 		}
-		// Otherwise, save the request (if the bin exists)
+
+		renderTemplate(w, "inspect", &bin)
+
 	} else {
 		dump, err := httputil.DumpRequest(r, true)
 
@@ -121,17 +135,22 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dump = append([]byte("<pre>"), dump...)
-		dump = append([]byte(dump), []byte("</pre>")...)
-
+		requesterIP1 := r.RemoteAddr
 		requesterIP := r.Header.Get("X-Forwarded-For")
 
-		if saveRequest(hash, dump) {
-			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s</p>", requesterIP)
+		if saveRequest(binID, dump) {
+			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s, %s</p>", requesterIP1, requesterIP)
 			fmt.Fprintf(w, "<p><a href=%s>View requests</a>", binAddress+"?inspect")
 		} else {
 			http.NotFound(w, r)
 		}
+	}
+}
+
+func renderTemplate(writer http.ResponseWriter, tmpl string, bin *BinInfo) {
+	err := templates.ExecuteTemplate(writer, tmpl+".html", bin)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
 }
 

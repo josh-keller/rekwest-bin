@@ -1,0 +1,16 @@
+{{define "request"}}
+<div class="request">
+  <pre>{{.Raw}}</pre>
+</div>
+{{end}}
+
+<h1>Requests to {{.BinAddress}}</h1>
+{{if not .Requests}}
+<h2>No requests</h2>
+<p>Make a request to: {{.BinAddress}}</p>
+<p>View request at: {{.BinAddress}}?inspect</p>
+{{else}}
+  {{range .Requests}}
+  {{template "request" .}}
+  {{end}}
+{{end}}
