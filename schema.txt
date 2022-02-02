@@ -1,19 +1,20 @@
-Document:
-
-  bin {
-    binId: id
-    created_at: timestamp
-
-    requests: [
+bin: {
+  binId: string,
+  created_at: timestamp,
+  requests: [
     {
-      method:
-      host:
-      ...etc
+      requestId: string,
+			method: string,
+      host: string,
+      path: string,
+      created: timestamp,
+      parameters: {},
+      headers: {},
+      body: string,
+			raw: string,
     },
     {
       ...
     }
-
-    ]
-  }
-
+  ]
+}
