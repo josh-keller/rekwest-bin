@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var client *mongo.Client
 var bins *mongo.Collection
+
+const SLICE_SIZE = 3
 
 var makeRandomId = func() func() string {
 	var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -32,7 +35,6 @@ var makeRandomId = func() func() string {
 	}
 }()
 
-// clean up structs
 type Bin struct {
 	BinId      string
 	Created_at string // timestamp
@@ -56,13 +58,12 @@ func Connect() {
 		return
 	}
 
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	// clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
-	clientOptions := options.Client().ApplyURI("mongodb://127.0.0.1:27017")
+	clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -91,7 +92,6 @@ func Disconnect() {
 	fmt.Println("MongoDB disconnected")
 }
 
-// update how we create the binId / url hash
 func NewBin() (Bin, string) {
 	newBin := Bin{
 		BinId:      makeRandomId(),
@@ -107,7 +107,7 @@ func NewBin() (Bin, string) {
 }
 
 func FindBin(binId string) (Bin, bool) {
-	filter := bson.D{primitive.E{Key: "binid", Value: binId}}
+	filter := bson.D{{"binid", binId}}
 	var bin Bin
 	err := bins.FindOne(context.TODO(), filter).Decode(&bin)
 	if err != nil {
@@ -141,28 +141,17 @@ func GetAllBins() {
 		log.Fatal(err)
 	}
 
-	// not returning anything, just printing
 	fmt.Println(results)
 	cursor.Close(context.TODO())
 }
 
 func AddRekwest(binId string, rekwest Rekwest) bool {
-	bin, success := FindBin(binId)
-	if !success {
-		return false
-	}
+	result, err := bins.UpdateOne(
+		context.TODO(),
+		bson.M{"binid": binId},
+		bson.M{"$push": bson.M{"rekwests": bson.M{"$each": []Rekwest{rekwest}, "$position": 0, "$slice": SLICE_SIZE}}},
+	)
 
-	// add slicing functionality
-	bin.Rekwests = append(bin.Rekwests, rekwest)
-	numOfRekwests := len(bin.Rekwests)
-
-	if numOfRekwests > 20 {
-		bin.Rekwests = bin.Rekwests[numOfRekwests-20:]
-	}
-
-	filter := bson.D{{"binid", binId}}
-	update := bson.D{{"$set", bson.D{{"rekwests", bin.Rekwests}}}}
-	result, err := bins.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
 	}
