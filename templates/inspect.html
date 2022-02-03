@@ -4,13 +4,13 @@
 </div>
 {{end}}
 
-<h1>Requests to {{.BinAddress}}</h1>
-{{if not .Requests}}
+<h1>Requests to {{.BinId}}</h1>
+{{if not .Rekwests}}
 <h2>No requests</h2>
-<p>Make a request to: {{.BinAddress}}</p>
-<p>View request at: {{.BinAddress}}?inspect</p>
+<p>Make a request to: {{.BinId}}</p>
+<p>View request at: {{.BinId}}?inspect</p>
 {{else}}
-  {{range .Requests}}
+  {{range .Rekwests}}
   {{template "request" .}}
   {{end}}
 {{end}}

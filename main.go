@@ -3,59 +3,32 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"net/http/httputil"
-	"time"
 
 	"github.com/wboard82/rekwest-bin/db_controller"
 )
 
 var templates = template.Must(template.ParseFiles("templates/inspect.html"))
 
-var binStore = NewBinStore()
-
-var testBin = db_controller.Bin{
-	BinId:      "",
-	Created_at: time.Now().GoString(), // timestamp
-	Rekwests:   make([]db_controller.Rekwest, 20),
-}
-
-var testRekwest = db_controller.Rekwest{
-	RekwestId:  "",
-	Method:     "POST",
-	Host:       "316e-174-81-238-56.ngrok.io",
-	Path:       "/r/",
-	Created:    time.Now().GoString(), // timestamp
-	Parameters: nil,
-	Headers: map[string]string{
-		"User-Agent":        "curl/7.68.0",
-		"Content-Length":    "28",
-		"Accept":            "*/*",
-		"Accept-Encoding":   "gzip",
-		"Content-Type":      "application/json",
-		"X-Forwarded-For":   "192.222.245.48",
-		"X-Forwarded-Proto": "https",
-	},
-	Body: `{"dragons": "are dangerous"}`,
-	Raw:  "hi im a raw rekwest",
-}
+// func main() {
+// 	bin, binId := db_controller.NewBin()
+// 	fmt.Println(bin, binId, bin.BinId)
+// 	bin, success := db_controller.FindBin(binId)
+// 	fmt.Println(bin, success)
+// 	db_controller.GetAllBins()
+// 	db_controller.AddRekwest(binId, testRekwest)
+// }
 
 func main() {
 	db_controller.Connect()
 	defer db_controller.Disconnect()
-	bin, binId := db_controller.NewBin()
-	fmt.Println(bin, binId, bin.BinId)
-	bin, success := db_controller.FindBin(binId)
-	fmt.Println(bin, success)
-	db_controller.GetAllBins()
-	db_controller.AddRekwest(binId, testRekwest)
-}
 
-// func main() {
-// 	http.HandleFunc("/r/", binHandler)
-// 	http.HandleFunc("/", rootHandler)
-// 	log.Fatal(http.ListenAndServe(":8080", nil))
-// }
+	http.HandleFunc("/r/", binHandler)
+	http.HandleFunc("/", rootHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>")
@@ -83,41 +56,28 @@ func fixIPAddress(r *http.Request) {
 }
 
 func binHandler(w http.ResponseWriter, r *http.Request) {
-	// The POST route creates a new bin and redirects to the inspect page
 	if r.Method == "POST" {
-		binName := binStore.NewBin()
+		fmt.Println("Calling New Bin")
+		bin, _ := db_controller.NewBin()
+		fmt.Println("Called New Bin: ", bin)
 
-		http.Redirect(w, r, "/r/"+binName+"?inspect", 302)
+		http.Redirect(w, r, "/r/"+bin.BinId+"?inspect", 302)
 		return
 	}
 
-	// This grabs the part after /r/ in the path
 	binID := r.URL.Path[len("/r/"):]
-	// Put the full link together here to be displayed on a landing page
 	binAddress := fmt.Sprintf("http://%s/r/%s", r.Host, binID)
 
-	// If there is a query "inspect", show all the requests
 	if r.URL.RawQuery == "inspect" {
-		rekwests, exists := loadRequest(binID)
+		bin, exists := db_controller.FindBin(binID)
 
 		if !exists {
 			http.NotFound(w, r)
 			return
 		}
 
-		requestInfo := make([]RequestInfo, len(rekwests))
-
-		for i, req := range rekwests {
-			requestInfo[i] = RequestInfo{req}
-		}
-
-		bin := BinInfo{
-			BinAddress: binAddress,
-			Requests:   requestInfo,
-		}
-
+		fmt.Printf("Bin found: %#v\n", bin)
 		renderTemplate(w, "inspect", &bin)
-
 	} else {
 		dump, err := httputil.DumpRequest(r, true)
 
@@ -137,7 +97,17 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func renderTemplate(writer http.ResponseWriter, tmpl string, bin *BinInfo) {
+func saveRequest(hash string, rekwest []byte) bool {
+	fmt.Println(hash, rekwest)
+	return true
+}
+
+func loadRequest(hash string) ([]string, bool) {
+	fmt.Println(hash)
+	return []string{}, true
+}
+
+func renderTemplate(writer http.ResponseWriter, tmpl string, bin *db_controller.Bin) {
 	err := templates.ExecuteTemplate(writer, tmpl+".html", bin)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)

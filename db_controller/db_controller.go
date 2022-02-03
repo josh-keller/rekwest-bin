@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
+	"math/rand"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,6 +16,22 @@ import (
 var client *mongo.Client
 var bins *mongo.Collection
 
+var makeRandomId = func() func() string {
+	var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	var source = rand.NewSource(time.Now().UnixNano())
+	var gen = rand.New(source)
+
+	return func() string {
+		b := make([]rune, 8)
+
+		for i := range b {
+			b[i] = letters[gen.Intn(len(letters))]
+		}
+
+		return string(b)
+	}
+}()
+
 // clean up structs
 type Bin struct {
 	BinId      string
@@ -25,15 +40,15 @@ type Bin struct {
 }
 
 type Rekwest struct {
-	RekwestId  string
-	Method     string
-	Host       string
-	Path       string
-	Created    string // timestamp
-	Parameters map[string]string
-	Headers    map[string]string
-	Body       string
-	Raw        string
+	// RekwestId  string
+	// Method     string
+	// Host       string
+	// Path       string
+	// Created    string // timestamp
+	// Parameters map[string]string
+	// Headers    map[string]string
+	// Body       string
+	Raw string
 }
 
 func Connect() {
@@ -41,15 +56,15 @@ func Connect() {
 		return
 	}
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
 	// clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_TEST_URI"))
+	clientOptions := options.Client().ApplyURI("mongodb://127.0.0.1:27017")
 
-	client, err = mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,29 +94,23 @@ func Disconnect() {
 // update how we create the binId / url hash
 func NewBin() (Bin, string) {
 	newBin := Bin{
-		BinId:      "",
+		BinId:      makeRandomId(),
 		Created_at: time.Now().GoString(),
 		Rekwests:   make([]Rekwest, 0),
 	}
-	results, err := bins.InsertOne(context.TODO(), newBin)
+	_, err := bins.InsertOne(context.TODO(), newBin)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// fmt.Println(newBin)
-	newBin.BinId = results.InsertedID.(primitive.ObjectID).Hex()
-	// fmt.Println(newBin)
-	return newBin, newBin.BinId
+	return newBin, "ok"
 }
 
 func FindBin(binId string) (Bin, bool) {
-	objectID, err := primitive.ObjectIDFromHex(binId)
-	if err != nil {
-		return Bin{}, false
-	}
-	filter := bson.D{{"_id", objectID}}
+	fmt.Println("Finding: ", binId)
+	filter := bson.D{primitive.E{Key: "binid", Value: binId}}
 	var bin Bin
-	err = bins.FindOne(context.TODO(), filter).Decode(&bin)
+	err := bins.FindOne(context.TODO(), filter).Decode(&bin)
 	if err != nil {
 		// // check if these err checks are needed
 		// ErrNoDocuments means that the filter did not match any documents in
@@ -113,12 +122,9 @@ func FindBin(binId string) (Bin, bool) {
 		//   return Bin{}, false
 		// }
 
+		fmt.Println("error: ", err)
 		return Bin{}, false
 	}
-
-	fmt.Println(bin)
-	bin.BinId = binId
-	fmt.Println(bin)
 
 	return bin, true
 }
