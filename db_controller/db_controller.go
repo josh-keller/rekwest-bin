@@ -163,17 +163,19 @@ func AddRekwest(binId string, rekwest Rekwest) bool {
 		return false
 	}
 
-	fmt.Println(bin)
+	fmt.Println("Adding: ", bin)
 
-	objectID, err := primitive.ObjectIDFromHex(binId)
-	if err != nil {
-		return false
-	}
-
+	// objectID, err := primitive.ObjectIDFromHex(binId)
+	// if err != nil {
+	// 	return false
+	// }
+	//
 	// add slicing functionality
 	bin.Rekwests = append(bin.Rekwests, rekwest)
 
-	filter := bson.D{{"_id", objectID}}
+	fmt.Println("Bin.Rekwests: ", bin.Rekwests)
+
+	filter := bson.D{{"binid", binId}}
 	update := bson.D{{"$set", bson.D{{"rekwests", bin.Rekwests}}}}
 	result, err := bins.UpdateOne(context.TODO(), filter, update)
 	if err != nil {

@@ -86,9 +86,11 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		rekwest := db_controller.Rekwest{string(dump)}
+
 		fixIPAddress(r)
 
-		if saveRequest(binID, dump) {
+		if db_controller.AddRekwest(binID, rekwest) {
 			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s</p>", r.RemoteAddr)
 			fmt.Fprintf(w, "<p><a href=%s>View requests</a>", binAddress+"?inspect")
 		} else {
