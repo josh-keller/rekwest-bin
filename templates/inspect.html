@@ -1,10 +1,12 @@
 {{define "request"}}
 <div class="request">
   <pre>{{.Raw}}</pre>
+  
 </div>
 {{end}}
 
 <h1>Requests to {{.BinId}}</h1>
+{{.Created_at}}
 {{if not .Rekwests}}
 <h2>No requests</h2>
 <p>Make a request to: {{.BinId}}</p>

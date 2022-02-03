@@ -10,6 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -37,7 +38,7 @@ var makeRandomId = func() func() string {
 
 type Bin struct {
 	BinId      string
-	Created_at string // timestamp
+	Created_at primitive.Timestamp
 	Rekwests   []Rekwest
 }
 
@@ -48,7 +49,7 @@ type Rekwest struct {
 	// Path       string
 	// Created    string // timestamp
 	// Parameters map[string]string
-	// Headers    map[string]string
+	// Headers    map[string][]string
 	// Body       string
 	Raw string
 }
@@ -95,7 +96,7 @@ func Disconnect() {
 func NewBin() (Bin, string) {
 	newBin := Bin{
 		BinId:      makeRandomId(),
-		Created_at: time.Now().GoString(),
+		Created_at: primitive.Timestamp{T: uint32(time.Now().Unix())}, // time.Now().GoString(),
 		Rekwests:   make([]Rekwest, 0),
 	}
 	_, err := bins.InsertOne(context.TODO(), newBin)
