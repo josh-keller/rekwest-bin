@@ -12,15 +12,6 @@ import (
 
 var templates = template.Must(template.ParseFiles("templates/inspect.html"))
 
-// func main() {
-// 	bin, binId := db_controller.NewBin()
-// 	fmt.Println(bin, binId, bin.BinId)
-// 	bin, success := db_controller.FindBin(binId)
-// 	fmt.Println(bin, success)
-// 	db_controller.GetAllBins()
-// 	db_controller.AddRekwest(binId, testRekwest)
-// }
-
 func main() {
 	db_controller.Connect()
 	defer db_controller.Disconnect()
@@ -57,9 +48,7 @@ func fixIPAddress(r *http.Request) {
 
 func binHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		fmt.Println("Calling New Bin")
 		bin, _ := db_controller.NewBin()
-		fmt.Println("Called New Bin: ", bin)
 
 		http.Redirect(w, r, "/r/"+bin.BinId+"?inspect", 302)
 		return
@@ -76,7 +65,6 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Printf("Bin found: %#v\n", bin)
 		renderTemplate(w, "inspect", &bin)
 	} else {
 		dump, err := httputil.DumpRequest(r, true)
@@ -97,16 +85,6 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 		}
 	}
-}
-
-func saveRequest(hash string, rekwest []byte) bool {
-	fmt.Println(hash, rekwest)
-	return true
-}
-
-func loadRequest(hash string) ([]string, bool) {
-	fmt.Println(hash)
-	return []string{}, true
 }
 
 func renderTemplate(writer http.ResponseWriter, tmpl string, bin *db_controller.Bin) {

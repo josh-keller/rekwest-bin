@@ -107,21 +107,10 @@ func NewBin() (Bin, string) {
 }
 
 func FindBin(binId string) (Bin, bool) {
-	fmt.Println("Finding: ", binId)
 	filter := bson.D{primitive.E{Key: "binid", Value: binId}}
 	var bin Bin
 	err := bins.FindOne(context.TODO(), filter).Decode(&bin)
 	if err != nil {
-		// // check if these err checks are needed
-		// ErrNoDocuments means that the filter did not match any documents in
-		// the collection.
-		// if err == mongo.ErrNoDocuments {
-		// 	return Bin{}, true
-		// } else {
-		//   log.Fatal(err)
-		//   return Bin{}, false
-		// }
-
 		fmt.Println("error: ", err)
 		return Bin{}, false
 	}
@@ -163,17 +152,13 @@ func AddRekwest(binId string, rekwest Rekwest) bool {
 		return false
 	}
 
-	fmt.Println("Adding: ", bin)
-
-	// objectID, err := primitive.ObjectIDFromHex(binId)
-	// if err != nil {
-	// 	return false
-	// }
-	//
 	// add slicing functionality
 	bin.Rekwests = append(bin.Rekwests, rekwest)
+	numOfRekwests := len(bin.Rekwests)
 
-	fmt.Println("Bin.Rekwests: ", bin.Rekwests)
+	if numOfRekwests > 20 {
+		bin.Rekwests = bin.Rekwests[numOfRekwests-20:]
+	}
 
 	filter := bson.D{{"binid", binId}}
 	update := bson.D{{"$set", bson.D{{"rekwests", bin.Rekwests}}}}
