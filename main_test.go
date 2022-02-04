@@ -6,9 +6,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestHomePage(t *testing.T) {
+type ExampleTestSuite struct {
+	suite.Suite
+	VariableThatShouldStartAtFive int
+}
+
+func (suite *ExampleTestSuite) SetupTest() {
+	resetDB()
+}
+
+func (suite *ExampleTestSuite) TestHomePage(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -20,4 +30,8 @@ func TestHomePage(t *testing.T) {
 
 	expected := "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>"
 	assert.Equal(t, rr.Body.String(), expected, "should return HTML home page")
+}
+
+func TestExampleTestSuite(t *testing.T) {
+	suite.Run(t, new(ExampleTestSuite))
 }

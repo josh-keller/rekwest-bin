@@ -2,9 +2,12 @@ package db_controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"time"
 
@@ -37,13 +40,17 @@ var makeRandomId = func() func() string {
 }()
 
 type Bin struct {
-	BinId      string
-	Created_at primitive.Timestamp
-	Rekwests   []Rekwest
+	ObjectID primitive.ObjectID
+	BinId    string
+	Rekwests []Rekwest
+}
+
+func (b Bin) Timestamp() time.Time {
+	return b.ObjectID.Timestamp()
 }
 
 type Rekwest struct {
-	// RekwestId  string
+	RekwestId primitive.ObjectID
 	// Method     string
 	// Host       string
 	// Path       string
@@ -54,27 +61,39 @@ type Rekwest struct {
 	Raw string
 }
 
+func NewRekwest(r *http.Request) (Rekwest, error) {
+	dump, err := httputil.DumpRequest(r, true)
+
+	checkAndFail(err)
+
+	return Rekwest{
+		RekwestId: primitive.NewObjectIDFromTimestamp(time.Now()),
+		Raw:       string(dump),
+	}, nil
+
+}
+
+func checkAndFail(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func Connect() {
 	if client != nil {
 		return
 	}
 
 	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	checkAndFail(err)
 
 	clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	fmt.Println("MongoDB connected")
 	bins = client.Database("rekwest-bin").Collection("bins")
@@ -86,23 +105,19 @@ func Disconnect() {
 	}
 
 	err := client.Disconnect(context.TODO())
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	fmt.Println("MongoDB disconnected")
 }
 
 func NewBin() (Bin, string) {
 	newBin := Bin{
-		BinId:      makeRandomId(),
-		Created_at: primitive.Timestamp{T: uint32(time.Now().Unix())}, // time.Now().GoString(),
-		Rekwests:   make([]Rekwest, 0),
+		ObjectID: primitive.NewObjectIDFromTimestamp(time.Now()),
+		BinId:    makeRandomId(),
+		Rekwests: make([]Rekwest, 0),
 	}
 	_, err := bins.InsertOne(context.TODO(), newBin)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	return newBin, "ok"
 }
@@ -111,6 +126,7 @@ func FindBin(binId string) (Bin, bool) {
 	filter := bson.D{{"binid", binId}}
 	var bin Bin
 	err := bins.FindOne(context.TODO(), filter).Decode(&bin)
+
 	if err != nil {
 		fmt.Println("error: ", err)
 		return Bin{}, false
@@ -124,42 +140,38 @@ func GetAllBins() {
 	findOptions := options.Find()
 
 	cursor, err := bins.Find(context.TODO(), bson.D{{}}, findOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	for cursor.Next(context.TODO()) {
 		var elem Bin
-		err := cursor.Decode(&elem)
-		if err != nil {
-			log.Fatal(err)
-		}
 
+		err := cursor.Decode(&elem)
+		checkAndFail(err)
 		results = append(results, elem)
 	}
 
-	if err := cursor.Err(); err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(cursor.Err())
 
 	fmt.Println(results)
 	cursor.Close(context.TODO())
 }
 
-func AddRekwest(binId string, rekwest Rekwest) bool {
+func AddRekwest(binId string, r *http.Request) error {
+	rekwest, err := NewRekwest(r)
+
+	checkAndFail(err)
+
 	result, err := bins.UpdateOne(
 		context.TODO(),
 		bson.M{"binid": binId},
 		bson.M{"$push": bson.M{"rekwests": bson.M{"$each": []Rekwest{rekwest}, "$position": 0, "$slice": SLICE_SIZE}}},
 	)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkAndFail(err)
 
 	if result.MatchedCount == 0 {
-		return false
+		return errors.New("Bin not found")
 	}
 
-	return true
+	return nil
 }

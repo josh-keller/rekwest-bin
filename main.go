@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"net/http/httputil"
 
 	"github.com/wboard82/rekwest-bin/db_controller"
 )
@@ -67,18 +66,9 @@ func binHandler(w http.ResponseWriter, r *http.Request) {
 
 		renderTemplate(w, "inspect", &bin)
 	} else {
-		dump, err := httputil.DumpRequest(r, true)
-
-		if err != nil {
-			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-			return
-		}
-
-		rekwest := db_controller.Rekwest{string(dump)}
-
 		fixIPAddress(r)
 
-		if db_controller.AddRekwest(binID, rekwest) {
+		if err := db_controller.AddRekwest(binID, r); err == nil {
 			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s</p>", r.RemoteAddr)
 			fmt.Fprintf(w, "<p><a href=%s>View requests</a>", binAddress+"?inspect")
 		} else {
