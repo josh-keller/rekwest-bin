@@ -1,4 +1,4 @@
-package db_controller
+package main
 
 import (
 	"context"
@@ -29,12 +29,17 @@ type Database struct {
 func NewDatabase(dbName, collName string) *Database {
 	err := godotenv.Load()
 	checkAndFail(err)
+	var opts *options.ClientOptions
 
-	options := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
+	if os.Getenv("TEST_ENV") == "true" {
+		opts = options.Client().ApplyURI(os.Getenv("MONGODB_TEST_URI"))
+	} else {
+		opts = options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
+	}
 
 	return &Database{
 		client:   nil,
-		options:  options,
+		options:  opts,
 		bins:     nil,
 		dbName:   dbName,
 		collName: collName,
@@ -113,7 +118,6 @@ func NewRekwest(r *http.Request) (Rekwest, error) {
 		RekwestId: primitive.NewObjectIDFromTimestamp(time.Now()),
 		Raw:       string(dump),
 	}, nil
-
 }
 
 func checkAndFail(err error) {
@@ -122,22 +126,22 @@ func checkAndFail(err error) {
 	}
 }
 
-func NewBin() (Bin, string) {
+func (db *Database) NewBin() (Bin, string) {
 	newBin := Bin{
 		ObjectID: primitive.NewObjectIDFromTimestamp(time.Now()),
 		BinId:    makeRandomId(),
 		Rekwests: make([]Rekwest, 0),
 	}
-	_, err := bins.InsertOne(context.TODO(), newBin)
+	_, err := db.bins.InsertOne(context.TODO(), newBin)
 	checkAndFail(err)
 
 	return newBin, "ok"
 }
 
-func FindBin(binId string) (Bin, bool) {
+func (db *Database) FindBin(binId string) (Bin, bool) {
 	filter := bson.D{{"binid", binId}}
 	var bin Bin
-	err := bins.FindOne(context.TODO(), filter).Decode(&bin)
+	err := db.bins.FindOne(context.TODO(), filter).Decode(&bin)
 
 	if err != nil {
 		fmt.Println("error: ", err)
@@ -147,33 +151,12 @@ func FindBin(binId string) (Bin, bool) {
 	return bin, true
 }
 
-func GetAllBins() {
-	var results []Bin
-	findOptions := options.Find()
-
-	cursor, err := bins.Find(context.TODO(), bson.D{{}}, findOptions)
-	checkAndFail(err)
-
-	for cursor.Next(context.TODO()) {
-		var elem Bin
-
-		err := cursor.Decode(&elem)
-		checkAndFail(err)
-		results = append(results, elem)
-	}
-
-	checkAndFail(cursor.Err())
-
-	fmt.Println(results)
-	cursor.Close(context.TODO())
-}
-
-func AddRekwest(binId string, r *http.Request) error {
+func (db *Database) AddRekwest(binId string, r *http.Request) error {
 	rekwest, err := NewRekwest(r)
 
 	checkAndFail(err)
 
-	result, err := bins.UpdateOne(
+	result, err := db.bins.UpdateOne(
 		context.TODO(),
 		bson.M{"binid": binId},
 		bson.M{"$push": bson.M{"rekwests": bson.M{"$each": []Rekwest{rekwest}, "$position": 0, "$slice": SLICE_SIZE}}},
