@@ -14,6 +14,9 @@ func TestBinNew(t *testing.T) {
 	is := is.New(t)
 
 	srv, err := newServer()
+	srv.db.Connect()
+	defer srv.db.Disconnect()
+
 	is.NoErr(err) // newServer error
 
 	hsrv := httptest.NewServer(srv)
