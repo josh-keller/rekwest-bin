@@ -102,24 +102,31 @@ func (b Bin) Timestamp() time.Time {
 
 type Rekwest struct {
 	RekwestId primitive.ObjectID
-	// Method     string
-	// Host       string
-	// Path       string
-	// Created    string // timestamp
-	// Parameters map[string]string
+	Method    string
+	Host      string
+	Path      string
+	Params    map[string][]string
 	// Headers    map[string][]string
 	// Body       string
 	Raw string
 }
 
+func (rekwest Rekwest) Timestamp() time.Time {
+	return rekwest.RekwestId.Timestamp()
+}
+
 func NewRekwest(r *http.Request) (Rekwest, error) {
 	dump, err := httputil.DumpRequest(r, true)
-
 	checkAndFail(err)
+	queryParams := r.URL.Query()
 
 	return Rekwest{
 		RekwestId: primitive.NewObjectIDFromTimestamp(time.Now()),
+		Method:    r.Method,
+		Host:      r.Host,
+		Path:      r.URL.Path,
 		Raw:       string(dump),
+		Params:    queryParams,
 	}, nil
 }
 

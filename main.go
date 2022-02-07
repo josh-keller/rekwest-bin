@@ -39,15 +39,19 @@ func run(args []string) error {
 
 type server struct {
 	mux  *http.ServeMux
-	tmpl *template.Template
+	tmpl map[string]*template.Template
 	db   *Database
 }
 
 func newServer() (*server, error) {
 	srv := &server{
-		mux:  http.NewServeMux(),
-		tmpl: template.Must(template.ParseGlob("templates/*.html")),
-		db:   NewDatabase("rekwest-bin", "bins"),
+		mux: http.NewServeMux(),
+		tmpl: map[string]*template.Template{
+			"inspect": template.Must(template.ParseFiles("templates/inspect.html", "templates/rekwest.html")),
+			"rekwest": template.Must(template.ParseFiles("templates/rekwest.html")),
+		},
+
+		db: NewDatabase("rekwest-bin", "bins"),
 	}
 
 	srv.routes()
@@ -65,7 +69,7 @@ func (s *server) handleIndex() http.HandlerFunc {
 }
 
 func (s *server) renderTemplate(writer http.ResponseWriter, tmpl string, bin *Bin) {
-	err := s.tmpl.ExecuteTemplate(writer, tmpl+".html", bin)
+	err := s.tmpl[tmpl].ExecuteTemplate(writer, tmpl+".html", bin)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}

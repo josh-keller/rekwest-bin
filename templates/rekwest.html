@@ -1,0 +1,25 @@
+{{define "request"}}
+<div class="request">
+  <div class="request-line">
+    <div>
+      Method: {{.Method}}
+      Host: {{.Host}}
+      Path: {{.Path}}
+    </div>
+    <div>
+      <strong>Query Params:</strong>
+      <dl>
+      {{range $key, $val := .Params}}
+      <strong> {{ $key }} </strong>:
+        {{range $val}}
+          {{ . }},
+        {{end}}
+      {{else}}
+        None
+      {{end}}
+      </dl>
+    <div>Request Made At: {{.Timestamp}}</div>
+  </div>
+  <pre>{{.Raw}}</pre>
+</div>
+{{end}}
