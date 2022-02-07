@@ -1,18 +1,26 @@
 {{define "request"}}
 <div class="request">
   <pre>{{.Raw}}</pre>
-  
 </div>
 {{end}}
 
-<h1>Requests to {{.BinId}}</h1>
-{{.Timestamp}}
-{{if not .Rekwests}}
-<h2>No requests</h2>
-<p>Make a request to: {{.BinId}}</p>
-<p>View request at: {{.BinId}}?inspect</p>
-{{else}}
-  {{range .Rekwests}}
-  {{template "request" .}}
-  {{end}}
-{{end}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Rekwests: {{.BinId}}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet">
+  </head>
+  <body>
+    <h1>Requests to {{.BinId}}</h1>
+    <p> Bin created: {{.Timestamp}} </p>
+    {{range .Rekwests}}
+      {{template "request" .}}
+    {{else}}
+      <h2>No requests</h2>
+      <p>Make a request to: {{.BinId}}</p>
+      <p>View request at: {{.BinId}}?inspect</p>
+    {{end}}
+  </body>
+</html>
