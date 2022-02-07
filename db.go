@@ -19,30 +19,35 @@ import (
 )
 
 type Database struct {
-	client   *mongo.Client
-	options  *options.ClientOptions
-	bins     *mongo.Collection
-	dbName   string
-	collName string
+	client    *mongo.Client
+	options   *options.ClientOptions
+	bins      *mongo.Collection
+	dbName    string
+	collName  string
+	sliceSize int
 }
 
 func NewDatabase(dbName, collName string) *Database {
 	err := godotenv.Load()
 	checkAndFail(err)
 	var opts *options.ClientOptions
+	var sliceSize int
 
 	if os.Getenv("TEST_ENV") == "true" {
 		opts = options.Client().ApplyURI(os.Getenv("MONGODB_TEST_URI"))
+		sliceSize = 3
 	} else {
 		opts = options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
+		sliceSize = 20
 	}
 
 	return &Database{
-		client:   nil,
-		options:  opts,
-		bins:     nil,
-		dbName:   dbName,
-		collName: collName,
+		client:    nil,
+		options:   opts,
+		bins:      nil,
+		dbName:    dbName,
+		collName:  collName,
+		sliceSize: sliceSize,
 	}
 }
 
@@ -68,8 +73,6 @@ func (db *Database) Disconnect() {
 
 	fmt.Println("MongoDB disconnected")
 }
-
-const SLICE_SIZE = 3
 
 var makeRandomId = func() func() string {
 	var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -159,7 +162,7 @@ func (db *Database) AddRekwest(binId string, r *http.Request) error {
 	result, err := db.bins.UpdateOne(
 		context.TODO(),
 		bson.M{"binid": binId},
-		bson.M{"$push": bson.M{"rekwests": bson.M{"$each": []Rekwest{rekwest}, "$position": 0, "$slice": SLICE_SIZE}}},
+		bson.M{"$push": bson.M{"rekwests": bson.M{"$each": []Rekwest{rekwest}, "$position": 0, "$slice": db.sliceSize}}},
 	)
 
 	checkAndFail(err)
