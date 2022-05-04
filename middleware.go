@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
 
 func (s *server) fixIPAddress(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -24,5 +28,20 @@ func (s *server) fixIPAddress(h http.HandlerFunc) http.HandlerFunc {
 		}
 
 		h(w, r)
+	}
+}
+
+func (s *server) withLogging(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		uri := r.RequestURI
+		method := r.Method
+		h.ServeHTTP(w, r) // serve the original request
+
+		duration := time.Since(start)
+
+		// log request details
+		fmt.Println(uri, method, duration)
 	}
 }

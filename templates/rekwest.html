@@ -1,10 +1,11 @@
 {{define "request"}}
 <div class="request">
   <div class="request-line">
-    <div>
-      Method: {{.Method}}
-      Host: {{.Host}}
-      Path: {{.Path}}
+    <dl>
+      <dt>Method:</dt> <dd>{{.Method}}</dd>
+      <dt>Host:</dt> <dd>{{.Host}}</dd>
+      <dt>Path:</dt> <dd>{{.Path}}</dd>
+    </dl>
     </div>
     <div>
       <strong>Query Params:</strong>

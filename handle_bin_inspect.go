@@ -19,6 +19,7 @@ func (s *server) handleBinInspect() http.HandlerFunc {
 
 			s.renderTemplate(w, "inspect", &bin)
 			return
+
 		default:
 			http.NotFound(w, r)
 			return

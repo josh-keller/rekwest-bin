@@ -7,6 +7,7 @@ import (
 
 func (s *server) handleRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("handleRequest")
 		binID := r.URL.Path[len("/r/"):]
 		fmt.Println("Request made: ", binID)
 

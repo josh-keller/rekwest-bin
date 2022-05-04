@@ -7,6 +7,7 @@ import (
 
 func (s *server) handleBinNew() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("handleBinNew")
 		switch r.Method {
 		case "POST":
 			bin, _ := s.db.NewBin()

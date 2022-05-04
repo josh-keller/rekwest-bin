@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
-	socketio "github.com/googollee/go-socket.io"
 )
 
 func main() {
@@ -35,18 +33,14 @@ func run(args []string) error {
 	srv.db.Connect()
 	defer srv.db.Disconnect()
 
-	go srv.sockets.Serve()
-	defer srv.sockets.Close()
-
 	fmt.Printf("Rekwest Bin listening on :%d\n", *port)
 	return http.ListenAndServe(addr, srv)
 }
 
 type server struct {
-	mux     *http.ServeMux
-	tmpl    map[string]*template.Template
-	db      *Database
-	sockets *socketio.Server
+	mux  *http.ServeMux
+	tmpl map[string]*template.Template
+	db   *Database
 }
 
 func newServer() (*server, error) {
@@ -54,13 +48,10 @@ func newServer() (*server, error) {
 		mux: http.NewServeMux(),
 		tmpl: map[string]*template.Template{
 			"inspect": template.Must(template.ParseFiles("templates/inspect.html", "templates/rekwest.html")),
-			"rekwest": template.Must(template.ParseFiles("templates/rekwest.html")),
 		},
-		sockets: socketio.NewServer(nil),
-		db:      NewDatabase("rekwest-bin", "bins"),
+		db: NewDatabase("rekwest-bin", "bins"),
 	}
 
-	srv.socketRoutes()
 	srv.routes()
 	return srv, nil
 }
@@ -69,9 +60,17 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
-func (s *server) handleIndex() http.HandlerFunc {
+func (s *server) handleRoot() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join("public", "index.html"))
+		filename := ""
+
+		if r.URL.Path == "/" {
+			filename = "index.html"
+		} else {
+			filename = r.URL.Path
+		}
+
+		http.ServeFile(w, r, filepath.Join("public", filename))
 	}
 }
 

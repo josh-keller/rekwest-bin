@@ -4,14 +4,8 @@
     <title>Rekwests: {{.BinId}}</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
-    <script>
-      const socket = io();
-      socket.on("connect", () => {
-        socket.send("hello");
-      });
-    </script>
-    <link href="css/style.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
+    <link href="/css/style.css" rel="stylesheet">
   </head>
   <body>
     <h1>Requests to {{.BinId}}</h1>
