@@ -3,6 +3,7 @@ module github.com/wboard82/rekwest-bin
 go 1.17
 
 require (
+	github.com/googollee/go-socket.io v1.6.1
 	github.com/joho/godotenv v1.4.0
 	github.com/matryer/is v1.4.0
 	go.mongodb.org/mongo-driver v1.8.3
@@ -10,7 +11,10 @@ require (
 
 require (
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/gomodule/redigo v1.8.4 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect

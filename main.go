@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	socketio "github.com/googollee/go-socket.io"
 )
 
 func main() {
@@ -33,14 +35,18 @@ func run(args []string) error {
 	srv.db.Connect()
 	defer srv.db.Disconnect()
 
+	go srv.sockets.Serve()
+	defer srv.sockets.Close()
+
 	fmt.Printf("Rekwest Bin listening on :%d\n", *port)
 	return http.ListenAndServe(addr, srv)
 }
 
 type server struct {
-	mux  *http.ServeMux
-	tmpl map[string]*template.Template
-	db   *Database
+	mux     *http.ServeMux
+	tmpl    map[string]*template.Template
+	db      *Database
+	sockets *socketio.Server
 }
 
 func newServer() (*server, error) {
@@ -50,10 +56,11 @@ func newServer() (*server, error) {
 			"inspect": template.Must(template.ParseFiles("templates/inspect.html", "templates/rekwest.html")),
 			"rekwest": template.Must(template.ParseFiles("templates/rekwest.html")),
 		},
-
-		db: NewDatabase("rekwest-bin", "bins"),
+		sockets: socketio.NewServer(nil),
+		db:      NewDatabase("rekwest-bin", "bins"),
 	}
 
+	srv.socketRoutes()
 	srv.routes()
 	return srv, nil
 }
