@@ -9,8 +9,9 @@
   </head>
   <body>
     <header>
-      <h1>Bin: {{.BinId}}</h1>
-      <p> Bin created: {{.Timestamp}} </p>
+      <h1>Rekwest Bin</h1>
+      <h2>BinID: {{.BinId}}</h2>
+      <p>Bin created at: {{.Timestamp}} </p>
       <p>Make a request to: http://{{.Host}}/r/{{.BinId}}</p>
       <p>View request at: http://{{.Host}}/inspect/{{.BinId}}</p>
     </header>
