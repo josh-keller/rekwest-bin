@@ -92,6 +92,7 @@ var makeRandomId = func() func() string {
 
 type Bin struct {
 	ObjectID primitive.ObjectID
+	Host     string
 	BinId    string
 	Rekwests []Rekwest
 }

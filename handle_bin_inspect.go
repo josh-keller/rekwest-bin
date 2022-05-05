@@ -17,6 +17,8 @@ func (s *server) handleBinInspect() http.HandlerFunc {
 				return
 			}
 
+			bin.Host = r.Host
+
 			s.renderTemplate(w, "inspect", &bin)
 			return
 

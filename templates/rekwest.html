@@ -1,26 +1,30 @@
 {{define "request"}}
 <div class="request">
-  <div class="request-line">
+  <div id="request-line">
     <dl>
-      <dt>Method:</dt> <dd>{{.Method}}</dd>
-      <dt>Host:</dt> <dd>{{.Host}}</dd>
-      <dt>Path:</dt> <dd>{{.Path}}</dd>
+      <dt>Method:</dt>
+      <dd>{{.Method}}</dd>
+      <dt>Host:</dt>
+      <dd>{{.Host}}</dd>
+      <dt>Path:</dt>
+      <dd>{{.Path}}</dd>
+      <dt>Timestamp:</dt>
+      <dd>{{.Timestamp}}</dd>
     </dl>
-    </div>
-    <div>
-      <strong>Query Params:</strong>
-      <dl>
+  </div>
+  <div id="query-params">
+    <h3>Query Params:</h3>
+    <dl>
       {{range $key, $val := .Params}}
-      <strong> {{ $key }} </strong>:
-        {{range $val}}
-          {{ . }},
-        {{end}}
+        <dt> {{ $key }} </dt>
+        <dd>{{range $val}}</dd>
+        {{ . }} {{end}}
       {{else}}
         None
       {{end}}
-      </dl>
-    <div>Request Made At: {{.Timestamp}}</div>
+    </dl>
   </div>
+  <h3>Raw Request:</h3>
   <pre>{{.Raw}}</pre>
 </div>
 {{end}}

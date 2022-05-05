@@ -31,17 +31,51 @@ func (s *server) fixIPAddress(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+type (
+	responseData struct {
+		status int
+		size   int
+	}
+
+	loggingResponseWriter struct {
+		http.ResponseWriter
+		responseData *responseData
+	}
+)
+
+func (r loggingResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+	return size, err
+}
+
+func (r loggingResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
+}
+
 func (s *server) withLogging(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
+		responseData := &responseData{
+			status: 0,
+			size:   0,
+		}
+
+		lrw := loggingResponseWriter{
+			ResponseWriter: w,
+			responseData:   responseData,
+		}
+
+		h.ServeHTTP(lrw, r) // serve the original request
+
 		uri := r.RequestURI
 		method := r.Method
-		h.ServeHTTP(w, r) // serve the original request
 
 		duration := time.Since(start)
 
 		// log request details
-		fmt.Println(uri, method, duration)
+		fmt.Printf("%s %s (%d) - %d bytes, %v\n", method, uri, lrw.responseData.status, lrw.responseData.size, duration)
 	}
 }

@@ -8,14 +8,19 @@
     <link href="/css/style.css" rel="stylesheet">
   </head>
   <body>
-    <h1>Requests to {{.BinId}}</h1>
-    <p> Bin created: {{.Timestamp}} </p>
+    <header>
+      <h1>Bin: {{.BinId}}</h1>
+      <p> Bin created: {{.Timestamp}} </p>
+      <p>Make a request to: http://{{.Host}}/r/{{.BinId}}</p>
+      <p>View request at: http://{{.Host}}/inspect/{{.BinId}}</p>
+    </header>
+    <main>
+      <h2> Requests </h2>
     {{range .Rekwests}}
       {{template "request" .}}
     {{else}}
-      <h2>No requests</h2>
-      <p>Make a request to: {{.BinId}}</p>
-      <p>View request at: {{.BinId}}?inspect</p>
+      <h3>No requests in bin yet</h3>
     {{end}}
+    </main>
   </body>
 </html>

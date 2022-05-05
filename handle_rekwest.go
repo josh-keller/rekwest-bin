@@ -16,5 +16,7 @@ func (s *server) handleRequest() http.HandlerFunc {
 		} else {
 			http.NotFound(w, r)
 		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }

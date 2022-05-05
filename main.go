@@ -79,4 +79,6 @@ func (s *server) renderTemplate(writer http.ResponseWriter, tmpl string, bin *Bi
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
+
+	writer.WriteHeader(http.StatusOK)
 }
