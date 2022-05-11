@@ -1,18 +1,27 @@
-{{define "request"}}
-<div class="request">
-  <pre>{{.Raw}}</pre>
-  
-</div>
-{{end}}
-
-<h1>Requests to {{.BinId}}</h1>
-{{.Created_at}}
-{{if not .Rekwests}}
-<h2>No requests</h2>
-<p>Make a request to: {{.BinId}}</p>
-<p>View request at: {{.BinId}}?inspect</p>
-{{else}}
-  {{range .Rekwests}}
-  {{template "request" .}}
-  {{end}}
-{{end}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Rekwests: {{.BinId}}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
+    <link href="/css/style.css" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+      <h1>Rekwest Bin</h1>
+      <h2>BinID: {{.BinId}}</h2>
+      <p>Bin created at: {{.Timestamp}} </p>
+      <p>Make a request to: http://{{.Host}}/r/{{.BinId}}</p>
+      <p>View request at: http://{{.Host}}/inspect/{{.BinId}}</p>
+    </header>
+    <main>
+      <h2> Requests </h2>
+    {{range .Rekwests}}
+      {{template "request" .}}
+    {{else}}
+      <h3>No requests in bin yet</h3>
+    {{end}}
+    </main>
+  </body>
+</html>

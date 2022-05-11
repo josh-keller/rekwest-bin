@@ -1,95 +1,84 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"net/http/httputil"
-
-	"github.com/wboard82/rekwest-bin/db_controller"
+	"os"
+	"path/filepath"
 )
 
-var templates = template.Must(template.ParseFiles("templates/inspect.html"))
-
 func main() {
-	db_controller.Connect()
-	defer db_controller.Disconnect()
-
-	http.HandleFunc("/r/", binHandler)
-	http.HandleFunc("/", rootHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>")
-}
-
-func fixIPAddress(r *http.Request) {
-	var ipAddress string
-	var ipSources = []string{
-		r.Header.Get("True-Client-IP"),
-		r.Header.Get("True-Real-IP"),
-		r.Header.Get("X-Forwarded-For"),
-		r.Header.Get("X-Originating-IP"),
-	}
-
-	for _, ip := range ipSources {
-		if ip != "" {
-			ipAddress = ip
-			break
-		}
-	}
-
-	if ipAddress != "" {
-		r.RemoteAddr = ipAddress
+	if err := run(os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 }
 
-func binHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		bin, _ := db_controller.NewBin()
-
-		http.Redirect(w, r, "/r/"+bin.BinId+"?inspect", 302)
-		return
+func run(args []string) error {
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	var (
+		port = flags.Int("port", 8080, "port to listen on")
+	)
+	if err := flags.Parse(args[1:]); err != nil {
+		return err
+	}
+	addr := fmt.Sprintf("0.0.0.0:%d", *port)
+	srv, err := newServer()
+	if err != nil {
+		return err
 	}
 
-	binID := r.URL.Path[len("/r/"):]
-	binAddress := fmt.Sprintf("http://%s/r/%s", r.Host, binID)
+	srv.db.Connect()
+	defer srv.db.Disconnect()
 
-	if r.URL.RawQuery == "inspect" {
-		bin, exists := db_controller.FindBin(binID)
+	fmt.Printf("Rekwest Bin listening on :%d\n", *port)
+	return http.ListenAndServe(addr, srv)
+}
 
-		if !exists {
-			http.NotFound(w, r)
-			return
-		}
+type server struct {
+	mux  *http.ServeMux
+	tmpl map[string]*template.Template
+	db   *Database
+}
 
-		renderTemplate(w, "inspect", &bin)
-	} else {
-		dump, err := httputil.DumpRequest(r, true)
+func newServer() (*server, error) {
+	srv := &server{
+		mux: http.NewServeMux(),
+		tmpl: map[string]*template.Template{
+			"inspect": template.Must(template.ParseFiles("templates/inspect.html", "templates/rekwest.html")),
+		},
+		db: NewDatabase("rekwest-bin", "bins"),
+	}
 
-		if err != nil {
-			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-			return
-		}
+	srv.routes()
+	return srv, nil
+}
 
-		rekwest := db_controller.Rekwest{string(dump)}
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
 
-		fixIPAddress(r)
+func (s *server) handleRoot() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		filename := ""
 
-		if db_controller.AddRekwest(binID, rekwest) {
-			fmt.Fprintf(w, "<h1>Request saved</h1><p>%s</p>", r.RemoteAddr)
-			fmt.Fprintf(w, "<p><a href=%s>View requests</a>", binAddress+"?inspect")
+		if r.URL.Path == "/" {
+			filename = "index.html"
 		} else {
-			http.NotFound(w, r)
+			filename = r.URL.Path
 		}
+
+		http.ServeFile(w, r, filepath.Join("public", filename))
 	}
 }
 
-func renderTemplate(writer http.ResponseWriter, tmpl string, bin *db_controller.Bin) {
-	err := templates.ExecuteTemplate(writer, tmpl+".html", bin)
+func (s *server) renderTemplate(writer http.ResponseWriter, tmpl string, bin *Bin) {
+	err := s.tmpl[tmpl].ExecuteTemplate(writer, tmpl+".html", bin)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
+
+	writer.WriteHeader(http.StatusOK)
 }

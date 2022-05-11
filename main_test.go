@@ -1,23 +1,37 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/matryer/is"
 )
 
-func TestHomePage(t *testing.T) {
-	req, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
+func TestMain(t *testing.T) {
+	is := is.New(t)
+
+	srv, err := newServer()
+	is.NoErr(err) // newServer error
+
+	hsrv := httptest.NewServer(srv)
+	defer hsrv.Close()
+
+	req, err := http.NewRequest("get", hsrv.URL+"/", nil)
+	is.NoErr(err) // NewRequest error
+	client := &http.Client{
+		Timeout: 1 * time.Minute,
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(rootHandler)
-	handler.ServeHTTP(rr, req)
+	resp, err := client.Do(req)
+	is.NoErr(err) // Client request error
+	defer resp.Body.Close()
 
-	expected := "<h1>Welcome to Rekwest Bin</h1><form method='POST' action='/r/'><button type='submit'>Create a bin</button></form>"
-	assert.Equal(t, rr.Body.String(), expected, "should return HTML home page")
+	b, err := ioutil.ReadAll(resp.Body)
+	is.NoErr(err)                                                                       // Body read error
+	is.True(strings.Contains(string(b), `<h1>Welcome`))                                 // Contains welcome
+	is.True(strings.Contains(string(b), `<button type='submit'>Create a bin</button>`)) // Contains button
 }
